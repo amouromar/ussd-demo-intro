@@ -37,7 +37,7 @@ app.post("/ussd", async (req, res) => {
       currency: null,
       gender: null,
       attempts: 0,
-      stage: "phone", // Tracks current stage: phone, survey, confirm, change
+      stage: "phone",
     };
   }
 
@@ -64,7 +64,7 @@ app.post("/ussd", async (req, res) => {
         response =
           "CON User found! Starting survey...\nWhich country are you living in?";
       } else {
-        delete sessionMemory[sessionId]; // Clear memory on error
+        delete sessionMemory[sessionId];
         response = "END User not registered. Please register first.";
       }
     }
@@ -87,14 +87,21 @@ app.post("/ussd", async (req, res) => {
       response = "CON What is your gender?";
     } else if (step === 6) {
       memory.gender = inputs[5];
-      memoryAmerican = "confirm";
+      memory.stage = "confirm";
       response = `CON Your Info:\nCountry: ${memory.country}\nCity: ${memory.city}\nPresident: ${memory.president}\nCurrency: ${memory.currency}\nGender: ${memory.gender}\n1. Confirm\n2. Change Answers`;
     }
   }
   // Stage 3: Confirmation
   else if (memory.stage === "confirm") {
     if (inputs[inputs.length - 1] === "1") {
-      // Save to Supabase
+      console.log("Saving Data:", {
+        phone: memory.phone,
+        country: memory.country,
+        city: memory.city,
+        president: memory.president,
+        currency: memory.currency,
+        gender: memory.gender,
+      });
       const { error } = await supabase.from("survey").upsert(
         {
           phone: memory.phone,
@@ -108,10 +115,10 @@ app.post("/ussd", async (req, res) => {
       );
 
       if (error) {
-        console.log("Save Error:", error.message);
+        console.log("Save Error:", error);
         response = "END Error saving data";
       } else {
-        delete sessionMemory[sessionId]; // Clear memory
+        delete sessionMemory[sessionId];
         response = "END Data saved successfully. Goodbye!";
       }
     } else if (inputs[inputs.length - 1] === "2") {
