@@ -1,19 +1,27 @@
+require('dotenv').config();
 const express = require('express');
+const { createClient } = require('@supabase/supabase-js');
 const app = express();
 
-// Middleware to parse USSD POST data
+// Supabase setup
+const supabase = createClient(process.env.SUPABASE_URL, process.env.SUPABASE_KEY);
+
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 
-// USSD endpoint
-app.post('/ussd', (req, res) => {
+app.post('/ussd', async (req, res) => {
   const { sessionId, serviceCode, phoneNumber, text } = req.body;
   let response = '';
 
   if (text === '') {
     response = 'CON Welcome to My USSD App\n1. Check Balance\n2. Exit';
   } else if (text === '1') {
-    response = 'END Your balance is $100'; // Placeholder for Supabase later
+    const { data, error } = await supabase
+      .from('users')
+      .select('balance')
+      .eq('phone', phoneNumber)
+      .single();
+    response = error ? 'END Error fetching balance' : `END Your balance is $${data.balance}`;
   } else if (text === '2') {
     response = 'END Goodbye';
   } else {
@@ -24,7 +32,6 @@ app.post('/ussd', (req, res) => {
   res.send(response);
 });
 
-// Start server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
