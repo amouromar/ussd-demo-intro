@@ -16,11 +16,12 @@ app.use(express.json());
 
 app.post("/ussd", async (req, res) => {
   const { sessionId, serviceCode, phoneNumber, text } = req.body;
-  console.log("Phone Number:", phoneNumber); // Log to check format
+  console.log("Phone Number:", phoneNumber);
   let response = "";
 
   if (text === "") {
-    response = "CON Welcome to My USSD App\n1. Check Balance\n2. Exit";
+    response =
+      "CON Welcome to My USSD App\n1. Check Balance\n2. Register\n3. Exit";
   } else if (text === "1") {
     const { data, error } = await supabase
       .from("users")
@@ -32,11 +33,18 @@ app.post("/ussd", async (req, res) => {
       console.log("Supabase Error:", error.message);
       response = "END Error fetching balance";
     } else if (!data) {
-      response = "END User not registered";
+      response = "END User not registered. Please select Register.";
     } else {
       response = `END Your balance is $${data.balance}`;
     }
   } else if (text === "2") {
+    const { error } = await supabase
+      .from("users")
+      .insert({ phone: phoneNumber, balance: 50 });
+    response = error
+      ? "END Registration failed"
+      : "END Registration successful! Balance: $50";
+  } else if (text === "3") {
     response = "END Goodbye";
   } else {
     response = "END Invalid option";
